@@ -1,0 +1,16 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.litium.browser'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.litium.browser'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+}
