@@ -2,6 +2,7 @@ package com.litium.browser;
 
 import android.app.Activity;
 import android.app.role.RoleManager;
+import android.app.DownloadManager;
 import android.content.Intent;
 import android.provider.Settings;
 import android.graphics.Color;
@@ -10,6 +11,7 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.SharedPreferences;
@@ -26,6 +28,8 @@ import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
+import android.webkit.URLUtil;
+import android.widget.Toast;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -62,8 +66,8 @@ public final class MainActivity extends Activity {
             + "padding:0 20px;font-size:14px;font-weight:bold}.tiles{display:grid;grid-template-columns:repeat(3,1fr);"
             + "gap:8px;margin-top:16px}.tile{min-height:84px;padding:13px;background:#2d2d2d;color:#fff;"
             + "border-left:6px solid #00a4ef;font-size:13px}.tile strong{display:block;font-size:16px;margin-bottom:7px;"
-            + "font-weight:400}.tile.green{border-color:#107c10}.tile.orange{border-color:#ffb900}.note{"
-            + "font-size:12px;color:#aaa;margin-top:18px;line-height:1.5}@media(max-width:520px){.page{padding:10px}.tiles{grid-template-columns:repeat(2,1fr)}.search{display:block}.search button{width:100%;height:44px;margin-top:4px}}"
+            + "font-weight:400}.tile{animation:tileIn .28s ease both}.tile:nth-child(2){animation-delay:.06s}.tile:nth-child(3){animation-delay:.12s}.tile.green{border-color:#107c10}.tile.orange{border-color:#ffb900}.note{"
+            + "font-size:12px;color:#aaa;margin-top:18px;line-height:1.5}@keyframes tileIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.tile{animation:none}}@media(max-width:520px){.page{padding:10px}.tiles{grid-template-columns:repeat(2,1fr)}.search{display:block}.search button{width:100%;height:44px;margin-top:4px}}"
             + "</style></head><body><main class=\"page\"><div class=\"brand\">LITIUM</div>"
             + "<div class=\"tag\">Простой поиск. Меньше слежки.</div>"
             + "<form class=\"search\" action=\"https://duckduckgo.com/\" method=\"get\">"
@@ -141,6 +145,8 @@ public final class MainActivity extends Activity {
         webView.setVisibility(View.INVISIBLE);
         configurePrivacy(webView);
         webView.setWebChromeClient(new WebChromeClient());
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) ->
+            enqueueDownload(url, userAgent, contentDisposition, mimeType));
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -165,6 +171,11 @@ public final class MainActivity extends Activity {
                     return blockedResponse();
                 }
                 return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                view.setVisibility(View.INVISIBLE);
             }
 
             @Override
@@ -224,6 +235,26 @@ public final class MainActivity extends Activity {
             }
         }
         startActivity(new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS));
+    }
+
+    private void enqueueDownload(String url, String userAgent, String contentDisposition, String mimeType) {
+        Uri downloadUri = Uri.parse(url);
+        if (!"http".equals(downloadUri.getScheme()) && !"https".equals(downloadUri.getScheme())) {
+            Toast.makeText(this, "Небезопасная загрузка заблокирована", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DownloadManager.Request request = new DownloadManager.Request(downloadUri);
+        request.setMimeType(mimeType);
+        request.addRequestHeader("User-Agent", userAgent);
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
+        request.setTitle(fileName);
+        request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, fileName);
+        DownloadManager manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        if (manager != null) {
+            manager.enqueue(request);
+            Toast.makeText(this, "Загрузка началась", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void clearStats() {
@@ -402,7 +433,7 @@ public final class MainActivity extends Activity {
             + "font-size:12px;margin:6px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.litium-snippet{"
             + "color:#ddd;font-size:14px;line-height:1.4}.litium-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));"
             + "gap:8px;max-width:780px;margin:14px auto;padding:0 12px}.litium-image{display:block;overflow:hidden;"
-            + "border:0;border-bottom:5px solid #107c10;background:#2d2d2d}.litium-image img{display:block;width:100%;height:155px;object-fit:cover}.litium-empty{text-align:center;padding:40px 15px;color:#aaa}"
+            + "border:0;border-bottom:5px solid #107c10;background:#2d2d2d;animation:tileIn .28s ease both}.litium-image img{display:block;width:100%;height:155px;object-fit:cover}.litium-image-meta{padding:9px;color:#fff;font-size:13px;line-height:1.25}.litium-image-link{display:block;color:#aaa;font-size:11px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.litium-empty{text-align:center;padding:40px 15px;color:#aaa}@keyframes tileIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.litium-image,.litium-card{animation:none}}"
             + "@media(max-width:480px){.litium-logo{font-size:16px}.litium-q{font-size:14px}.litium-title{font-size:16px}.litium-image img{height:125px}}\";"
             + "document.head.appendChild(css);document.body.innerHTML='';"
             + "var top=document.createElement('header');top.className='litium-top';"
@@ -415,7 +446,7 @@ public final class MainActivity extends Activity {
             + "tabs[1].onclick=function(){location.href='https://duckduckgo.com/?q='+encodeURIComponent(q)+'&iax=images&ia=images'};"
             + "var list=document.createElement('section');list.className=imageMode?'litium-grid':'litium-list';document.body.appendChild(list);"
             + "if(imageMode){imgs.slice(0,48).forEach(function(x){var a=document.createElement('a');a.className='litium-image';a.href=x.href;"
-            + "a.target='_self';var i=document.createElement('img');i.loading='lazy';i.src=x.src;i.alt=x.alt;i.onerror=function(){a.remove();};a.appendChild(i);list.appendChild(a);});}"
+            + "a.target='_self';var i=document.createElement('img');i.loading='lazy';i.src=x.src;i.alt=x.alt;i.onerror=function(){a.remove();};a.appendChild(i);var meta=document.createElement('div');meta.className='litium-image-meta';meta.textContent=x.alt||'Изображение';var source=document.createElement('span');source.className='litium-image-link';source.textContent=x.href;meta.appendChild(source);a.appendChild(meta);list.appendChild(a);});}"
             + "else{data.forEach(function(x){var card=document.createElement('article');card.className='litium-card';"
             + "var link=document.createElement('a');link.className='litium-title';link.href=x.href;link.textContent=x.title;"
             + "var url=document.createElement('span');url.className='litium-url';url.textContent=x.href;"

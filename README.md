@@ -74,7 +74,7 @@ gradle :app:assembleDebug
 The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
 The prototype uses a privacy-focused search provider behind a Litium-owned
-interface with a quiet Windows 8/Xbox home style and a landscape background. WebView third-party cookies are blocked, its
+interface with a quiet Windows 8/Xbox home style. WebView third-party cookies are blocked, its
 history is cleared when the app starts while normal WebView cache is retained
 for speed, and local file/content access is disabled. These are privacy defaults, not a guarantee that every website
 will be tracking-free.
@@ -86,6 +86,9 @@ the statistics removes them from the device.
 The settings screen also exposes Android's standard default-browser chooser only
 after the user taps the action. The manifest includes `http` and `https` intent
 filters so links opened from other apps can be handled by Litium.
+
+Files offered by websites are handed to Android's Download Manager and appear in
+the app's Downloads folder with a completion notification.
 
 All Litium Android source, resources, Gradle files, and the build instructions
 are kept in this repository. The full Chromium checkout is intentionally kept
@@ -136,6 +139,7 @@ This ensures Litium Browser and all improvements remain open for everyone.
 - [x] Basic ad and tracker domain blocking
 - [x] Privacy settings and per-site blocking statistics
 - [x] Default-browser intent support
+- [x] Android Download Manager integration
 - [ ] Rename package and application branding
 - [ ] Basic browser window polish
 - [ ] Evaluate a full Chromium checkout
